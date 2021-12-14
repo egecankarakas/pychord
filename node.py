@@ -38,25 +38,30 @@ class Node(BaseNode):
         self.op_func_map = {
             op.FIND_SUCCESSOR: self.find_successor,
         }
+        self.predecessor = None
+        self.successor = None
 
     async def run(self, loop):
-        self._server = await asyncio.start_server(self.handle, self.ip, settings.CHORD_PORT)
-        self.task_update_periodically = loop.create_task(
-            self.update_periodically())
-        await self.task_update_periodically
+        self._server = await asyncio.start_server(self.handle, self.ip, settings.CHORD_PORT, loop=loop)
+        while True:
+            self.task_update_periodically = loop.create_task(
+                self.update_periodically())
+            await self.task_update_periodically
 
     async def update_periodically(self):
         log.info('Started Updating Periodically!')
-        while True:
-            if not self.joined:
-                if self.bootstrap_server:
-                    log.info('Joining Chord Ring!')
-                    await self.join()
-                else:
-                    log.info('Waiting for others to join the ring!')
-                    time.sleep(1)
-            log.debug('Stabilizing')
-            time.sleep(1)
+        if not self.joined:
+            if self.bootstrap_server:
+                log.info('Joining Chord Ring!')
+                await self.join()
+            else:
+                self.successor = self
+                self.predecessor = self
+                self.fingers = [self]*settings.NETWORK_SIZE
+                log.info('Waiting for others to join the ring!')
+                time.sleep(1)
+        log.debug('Stabilizing')
+        time.sleep(1)
         # pass
 
     async def stop(self):
@@ -64,12 +69,13 @@ class Node(BaseNode):
             self.task_update_periodically.close()
 
     async def handle(self, stream_reader, stream_writer):
-        log.debug(f'Reader:{stream_reader} \n Writer:{stream_writer}')
+        log.debug(f'Handle is called')
         msg = await stream_reader.read()
+        log.debug(f'Message is {msg}')
         msg = pickle.loads(msg)
         op_code = msg.pop('op')
         try:
-            result = self.op_func_map[op_code](**msg)
+            result = await self.op_func_map[op_code](**msg)
         except KeyError as e:
             log.debug(e)
         stream_writer.write(pickle.dumps(result))
@@ -88,7 +94,11 @@ class Node(BaseNode):
     async def find_successor(self, node_id):
         log.debug(f'Finding Successor of {node_id}')
         node = await self.find_predecessor(node_id)
-        return node.successor
+        log.debug(f'Successor of {node_id} is node.successor')
+        if not node.successor:
+            return self
+        else:
+            return node.successor
 
     async def find_predecessor(self, node_id):
         log.debug(f'Finding Precessor of {node_id}')

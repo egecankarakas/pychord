@@ -4,11 +4,11 @@ import settings
 
 
 class BaseNode(ABC):
-    def __init__(self,ip) -> None:
+    def __init__(self, ip) -> None:
         super().__init__()
-        self.ip=ip
-        self.port=settings.CHORD_PORT
-        self.fingers=[None]*settings.NETWORK_SIZE
+        self.ip = ip
+        self.port = settings.CHORD_PORT
+        self.fingers = [None]*settings.NETWORK_SIZE
         self.hash = sha1()
         self.hash.update(ip.encode())
         self.hash.update(self.port.to_bytes(3, "big"))
@@ -18,7 +18,7 @@ class BaseNode(ABC):
     # @abstractmethod
     # def find_successor(self, id):
     #     pass
-    
+
     # @abstractmethod
     # def find_predecessor(self,id):
     #     pass
@@ -67,3 +67,5 @@ class BaseNode(ABC):
     #     # PERIODICAL
     #     # periodically refresh finger table entries
     #     pass
+    def to_dict(self):
+        return {'successor': self.successor.nid, 'predecessor': self.predecessor.nid, 'fingers': [f.nid for f in self.fingers]}
