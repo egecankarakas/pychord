@@ -1,5 +1,20 @@
 from abc import ABC, abstractmethod
+from hashlib import sha1
+import settings
+
+
 class BaseNode(ABC):
+    def __init__(self,ip) -> None:
+        super().__init__()
+        self.ip=ip
+        self.port=settings.CHORD_PORT
+        self.fingers=[None]*settings.NETWORK_SIZE
+        self.hash = sha1()
+        self.hash.update(ip.encode())
+        self.hash.update(self.port.to_bytes(3, "big"))
+        self.nid = int.from_bytes(
+            self.hash.digest(), "big"
+        )  # SHA-1 result is casted to nid (node id)
     # @abstractmethod
     # def find_successor(self, id):
     #     pass
@@ -14,13 +29,13 @@ class BaseNode(ABC):
 
     @abstractmethod
     def join(self):
-        # join to chord network
+        # join to chord network, calls init finger table
         pass
 
-    # @abstractmethod
-    # def init_finger_table(self, arbitrary_node):
-    #     # initialize finger table of this node with an arbitrary node
-    #     pass
+    @abstractmethod
+    def init_finger_table(self, ip):
+        # initialize finger table of this node with an arbitrary node
+        pass
 
     # @abstractmethod
     # def update_others(self):
