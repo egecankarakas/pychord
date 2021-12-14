@@ -4,14 +4,8 @@ import socketio
 from aiohttp import web
 
 
-
-
-
-
-
-
 class node:
-    def __init__(next, previous):
+    def __init__(next = None, previous = None):
         self.hostname = socket.gethostname()
         self.ip = socket.gethostbyname(self.hostname)
         self.NodeId = hashlib.sha1(self.ip.encode()) 
@@ -23,7 +17,7 @@ class node:
     
 
     
-    
+
         
 
 
