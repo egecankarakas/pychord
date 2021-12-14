@@ -1,9 +1,7 @@
 from comm_out import commout  
 from comm_in import commin
+import threading
 
-
-
-client = commout()
-socket.gethostname()
+comm_in = commin()
 
 
