@@ -11,6 +11,7 @@ from client import Client
 import operations as op
 from hashlib import sha1
 from utils import arc_contains
+import utils
 
 
 class HostnameFilter(logging.Filter):
@@ -32,21 +33,21 @@ log.addHandler(handler)
 class RemoteNode(BaseNode):
     def __init__(self, ip) -> None:
         super().__init__(ip)
+        if not Client.getInstance(bootstrap=ip,bootstrap_id=utils.get_node_id(ip)):
+            Client(bootstrap=ip,bootstrap_id=utils.get_node_id(ip))
+
 
     @staticmethod
-    def from_bag(bag) -> None:
+    def from_bag(bag):
         log.debug(f'Bag: {bag}')
         node = RemoteNode(bag['ip'])
         if 'finger_table' in bag:
-            for i, (node_bag,start,end) in bag['finger_table']:
-                node.fingers[i] = Finger(node_bag,start,end)
+            for i, f in enumerate(bag['finger_table']):
+                finger_node = RemoteNode(f['node']['ip']) if f['node'] else None
+                node.fingers[i] = Finger(node=finger_node,start=f['start'],end=f['end'])
+        return node
 
-    def to_bag(self):
-        bag={'ip':self.ip}
-        finger_table=[]
-        for f in self.fingers:
-            finger_table.append({'successor':f.node)
-        bag['finger_table']=finger_table
+
 
 
     # async def init_finger_table(self, arbitrary_node):
@@ -62,29 +63,38 @@ class RemoteNode(BaseNode):
         #     self.client = Client()
         # self.client.send(self.bootstrap_server,self.port,)
 
-    async def find_successor(self, node_id):
-        log.debug(f'Requesting Node {self.nid} to find successor of {node_id}')
-        result = await Client.getInstance().send(self.ip, self.port, {'op': op.FIND_SUCCESSOR, 'node_id': node_id})
-        return result['successor']
+    async def find_successor(self, bag):
+        log.debug(f"Requesting Node {self.nid} to find successor of {bag['node_id']}")
+        return await Client.getInstance().send({**bag,**{'op':op.FIND_SUCCESSOR}}, self.ip, self.port)
 
     async def find_predecessor(self, node_id): #TODO implement correctly
         log.debug(
             f'Requesting Node {self.nid} to find Predecessor of {node_id}')
-        node_prime = self
-        while not arc_contains(node_prime.nid, node_prime.successor.nid, node_id, end_included=True):
-            node_prime = node_prime.closest_preceding_finger(node_id)
-        return node_prime
+        raise NotImplementedError
+        # node_prime = self
+        # while not arc_contains(node_prime.nid, node_prime.successor.nid, node_id, end_included=True):
+        #     node_prime = node_prime.closest_preceding_finger(node_id)
+        # return node_prime
 
     async def closest_preceding_finger(self, node_id): # TODO implement correctly
         log.debug(
             f'Requesting Node {self.nid} to find Closest preceding finger of {node_id}')
-        for i in range(settings.NETWORK_SIZE-1, -1, -1):
-            if arc_contains(self.nid, node_id, self.fingers[i].nid):
-                return self.fingers[i]
-        return self
+        raise NotImplementedError
+        # for i in range(settings.NETWORK_SIZE-1, -1, -1):
+        #     if arc_contains(self.nid, node_id, self.fingers[i].nid):
+        #         return self.fingers[i]
+        # return self
 
     async def join(self):
         log.warn("Cannot Join over remote node")
 
     async def init_finger_table(self):
         log.warn("Do not Initialize over remote node, make call to self!")
+
+    async def update_finger_table(self, bag):
+        log.debug(f"Updating finger table of Node {self.nid}") #TODO: implement
+        return await Client.getInstance().send({**bag,**{'op':op.UPDATE_FINGER_TABLE}}, self.ip, self.port)
+
+    async def notify(self, bag):
+        log.debug(f"Notifying {self.nid} that {bag['nid']} can be its predecessor") #TODO: implement
+        return await Client.getInstance().send({**bag,**{'op':op.NOTIFY}}, self.ip, self.port)

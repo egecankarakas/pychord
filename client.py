@@ -18,9 +18,10 @@ class Client():
     __instance = None
 
     @staticmethod
-    def getInstance():
+    def getInstance(bootstrap=None, bootstrap_id=-1):
         if Client.__instance == None:
-            Client(None, -1) # This should not be called first
+            # raise Exception("Client should be initialized properly before")
+           Client(bootstrap, bootstrap_id) # This should not be called first
         return Client.__instance
 
     def __init__(self, bootstrap, bootstrap_id) -> None:
@@ -29,7 +30,8 @@ class Client():
         else:
             self.connections = {}
             self.bootstrap=bootstrap
-            self.routes = {bootstrap_id, bootstrap}
+            self.routes = {bootstrap_id: bootstrap}
+            Client.__instance = self
 
     @asyncio.coroutine
     def send(self, message, ip=None, port=settings.CHORD_PORT, destination=None): 
