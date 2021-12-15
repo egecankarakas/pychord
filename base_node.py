@@ -2,19 +2,26 @@ from abc import ABC, abstractmethod
 from hashlib import sha1
 import settings
 
+class Finger():
+    def __init__(self) -> None:
+        self.node = None
+        self.start = None
+        self.end = None
 
 class BaseNode(ABC):
     def __init__(self, ip) -> None:
         super().__init__()
         self.ip = ip
         self.port = settings.CHORD_PORT
-        self.fingers = [None]*settings.NETWORK_SIZE
+        self.fingers = [Finger() for f in range(settings.NETWORK_SIZE)]
         self.hash = sha1()
         self.hash.update(ip.encode())
         self.hash.update(self.port.to_bytes(3, "big"))
         self.nid = int.from_bytes(
             self.hash.digest(), "big"
-        )  # SHA-1 result is casted to nid (node id)
+        )  % (1 << settings.NETWORK_SIZE)# SHA-1 result is casted to nid (node id)
+        self.fingers[0] = self
+        self.routes={self.nid: self.ip}
     # @abstractmethod
     # def find_successor(self, id):
     #     pass

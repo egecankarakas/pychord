@@ -47,3 +47,7 @@ DEBUG:asyncio:Using selector: SelectSelector
 INFO:Chord:Started Updating Periodically!
 INFO:Chord:Waiting for others to join the ring!
 DEBUG:Chord:Stabilizing
+DEBUG:asyncio:Using selector: SelectSelector
+INFO:Chord:Started Updating Periodically!
+INFO:Chord:Waiting for others to join the ring!
+DEBUG:Chord:Stabilizing
