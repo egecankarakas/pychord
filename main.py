@@ -6,6 +6,9 @@ from node import Node
 
 def main():
     logging.basicConfig(filename='chord.log', level=logging.DEBUG)
+    for handler in logging.getLogger().handlers:
+        if not isinstance(handler,logging.StreamHandler):
+            handler.setFormatter(logging.Formatter('%(asctime)s %(hostname)s: %(message)s', datefmt='%b %d %H:%M:%S'))
     parser = argparse.ArgumentParser(description='Start Chord Node.')
     parser.add_argument('--ip', type=str, required=True,
                         help='IP address to run chord at')

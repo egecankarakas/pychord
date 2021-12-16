@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from hashlib import sha1
 import settings
 
+
 class Finger():
     def __init__(self, node=None, start=None, end=None) -> None:
         self.node = node
@@ -9,7 +10,8 @@ class Finger():
         self.end = end
 
     def to_bag(self):
-        return {'node':{'nid':self.node.nid,'ip':self.node.ip} if self.node else None,'start':self.start,'end':self.end}
+        return {'node': {'nid': self.node.nid, 'ip': self.node.ip} if self.node else None, 'start': self.start, 'end': self.end}
+
 
 class BaseNode(ABC):
     def __init__(self, ip) -> None:
@@ -21,12 +23,13 @@ class BaseNode(ABC):
         self.hash.update(self.port.to_bytes(3, "big"))
         self.nid = int.from_bytes(
             self.hash.digest(), "big"
-        )  % (1 << settings.NETWORK_SIZE)# SHA-1 result is casted to nid (node id)
-        self.fingers = [Finger(start=self.nid+(1<<k),end=self.nid+(1<<k+1)) for k in range(settings.NETWORK_SIZE)]
+        ) % (1 << settings.NETWORK_SIZE)  # SHA-1 result is casted to nid (node id)
+        self.fingers = [Finger(start=self.nid+(1 << k), end=self.nid+(1 << k+1))
+                        for k in range(settings.NETWORK_SIZE)]
         self.fingers[0].node = self
-        self.routes={self.nid: self.ip}
-        self.successor=None
-        self.predecessor=None
+        self.routes = {self.nid: self.ip}
+        self.successor = None
+        self.predecessor = None
     # @abstractmethod
     # def find_successor(self, id):
     #     pass
@@ -84,13 +87,15 @@ class BaseNode(ABC):
 
     def to_bag(self):
         # print(f'bagging {self.nid}')
-        bag={'ip':self.ip}
-        bag['nid']=self.nid
-        finger_table=[]
+        bag = {'ip': self.ip}
+        bag['nid'] = self.nid
+        finger_table = []
         for f in self.fingers:
-            finger_table.append(f.to_bag()) #TODO fix the bag
-        bag['finger_table']=finger_table
-        bag['successor']={'nid': self.successor.nid,'ip':self.successor.ip} if self.successor else None
-        bag['predecessor']={'nid': self.predecessor.nid,'ip':self.predecessor.ip} if self.predecessor else None
+            finger_table.append(f.to_bag())  # TODO fix the bag
+        bag['finger_table'] = finger_table
+        bag['successor'] = {'nid': self.successor.nid,
+                            'ip': self.successor.ip} if self.successor else None
+        bag['predecessor'] = {'nid': self.predecessor.nid,
+                              'ip': self.predecessor.ip} if self.predecessor else None
         # print(f'bagged {self.nid}')
         return bag

@@ -9,10 +9,12 @@ import settings
 log = logging.getLogger()
 
 
-class NodeCannotJoin(Exception):
+class NodeConnectionError(Exception):
     pass
 
+
 MESSAGE_SEPERATOR = b'#'
+
 
 class Client():
     __instance = None
@@ -21,7 +23,7 @@ class Client():
     def getInstance(bootstrap=None, bootstrap_id=-1):
         if Client.__instance == None:
             # raise Exception("Client should be initialized properly before")
-           Client(bootstrap, bootstrap_id) # This should not be called first
+            Client(bootstrap, bootstrap_id)  # This should not be called first
         return Client.__instance
 
     def __init__(self, bootstrap, bootstrap_id) -> None:
@@ -29,29 +31,38 @@ class Client():
             raise Exception("This class is a singleton")
         else:
             self.connections = {}
-            self.bootstrap=bootstrap
+            self.bootstrap = bootstrap
             self.routes = {bootstrap_id: bootstrap}
             Client.__instance = self
 
     @asyncio.coroutine
-    def send(self, message, ip=None, port=settings.CHORD_PORT, destination=None): 
+    def send(self, message, ip=None, port=settings.CHORD_PORT, destination=None):
         # Provide either ip and port or destination
         if(ip and port):
             self.routes[utils.get_node_id(ip)] = ip
         else:
             if destination in self.routes:
-                ip=self.routes[destination]
+                ip = self.routes[destination]
             else:
                 # May cause problems but a way to guarantee sending requests to networks
-                ip=self.bootstrap
-        reader, writer = yield from asyncio.open_connection(ip, port)
-        log.debug(f'Sending: {message}')
-        writer.write(pickle.dumps(message) + MESSAGE_SEPERATOR)
-        yield from writer.drain()
-        log.debug(f'Sent!')
-        data = yield from reader.readuntil(MESSAGE_SEPERATOR)
-        writer.close()
-        data=pickle.loads(data[:-1])
-        log.debug(f'Received: {data}')
-        return data
-
+                ip = self.bootstrap
+        conn = asyncio.open_connection(ip, port)
+        writer = None
+        try:
+            reader, writer = yield from asyncio.wait_for(conn, settings.CLIENT_TIMEOUT)
+            # reader, writer = yield from asyncio.open_connection(ip, port)
+            log.debug(f'Sending: {message}')
+            writer.write(pickle.dumps(message) + MESSAGE_SEPERATOR)
+            yield from writer.drain()
+            log.debug(f'Sent!')
+            data = yield from reader.readuntil(MESSAGE_SEPERATOR)
+            writer.close()
+            data = pickle.loads(data[:-1])
+            log.debug(f'Received: {data}')
+            return data
+        except (asyncio.TimeoutError, ConnectionError):
+            raise NodeConnectionError("Error occured during connection")
+        finally:
+            if writer:
+                writer.close()
+        
