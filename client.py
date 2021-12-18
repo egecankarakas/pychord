@@ -1,10 +1,11 @@
 import asyncio
-import math
-from hashlib import sha1
 import logging
+import math
 import pickle
-import utils
+from hashlib import sha1
+
 import settings
+import utils
 
 log = logging.getLogger()
 
@@ -19,34 +20,25 @@ MESSAGE_SEPERATOR = b'#'
 class ClientProtocol(asyncio.Protocol):
     def __init__(self, message, result, on_conn_lost):
         self.message = message
-        self.result=result
+        self.result = result
         self.on_conn_lost = on_conn_lost
-        self.transport=None
+        self.transport = None
 
     def connection_made(self, transport):
-        print('Connection made!')
-        print(f'About to send {self.message}')
+        log.debug('Connection made!')
+        # print(f'About to send {self.message}')
         transport.write(pickle.dumps(self.message))
-        # transport.close()
-        print(f'Data sent: {self.message}')
-
+        # print(f'Data sent: {self.message}')
 
     def data_received(self, data):
         self.result.set_result(pickle.loads(data))
 
     def connection_lost(self, exc):
-        print('The server closed the connection')
-        print('Stop the event loop')
-        print(exc)
+        log.debug('The server closed the connection')
+        log.debug('Stop the event loop')
+        log.debug(exc)
         self.on_conn_lost.set_result(True)
         # self.loop.stop()
-
-# loop = asyncio.get_event_loop()
-# message = 'Hello World!'
-# coro = loop.create_connection(lambda: ClientProtocol(message, loop),'127.0.0.1', 8888)
-# loop.run_until_complete(coro)
-# loop.run_forever()
-# loop.close()
 
 class Client():
     __instance = None
@@ -79,12 +71,13 @@ class Client():
             else:
                 # May cause problems but a way to guarantee sending requests to networks
                 ip = self.bootstrap
-        print(f'Sending: {message}')
-        loop=asyncio.get_event_loop()
-        result=loop.create_future()
+        log.debug(f'Sending: {message}')
+        loop = asyncio.get_event_loop()
+        result = loop.create_future()
         on_con_lost = loop.create_future()
 
-        coro = loop.create_connection(lambda: ClientProtocol(message, result, on_con_lost),ip, port)
+        coro = loop.create_connection(lambda: ClientProtocol(
+            message, result, on_con_lost), ip, port)
 
         # Wait until the protocol signals that the connection
         # is lost and close the transport.
@@ -92,10 +85,13 @@ class Client():
             await coro
             result = await result
             await on_con_lost
+        except Exception as e:
+            log.debug(e)
+            raise(NodeConnectionError)
         finally:
             # transport.close()
             pass
 
         #result = asyncio.gather(loop.create_task(loop.create_connection(lambda: ClientProtocol(pickle.dumps(message), loop),ip,settings.CHORD_PORT)))
-        print(f'Received: {result}')
+        log.debug(f'Received: {result}')
         return result

@@ -1,17 +1,17 @@
-import os
 import asyncio
-import pickle
-import settings
 import logging
+import os
+import pickle
 import socket
 import time
+from hashlib import sha1
 
+import operations as op
+import settings
+import utils
 from base_node import BaseNode, Finger
 from client import Client
-import operations as op
-from hashlib import sha1
 from utils import arc_contains
-import utils
 
 
 class HostnameFilter(logging.Filter):
@@ -62,9 +62,14 @@ class RemoteNode(BaseNode):
         # self.client.send(self.bootstrap_server,self.port,)
 
     async def find_successor(self, bag):
-        log.debug(
-            f"Requesting Node {self.nid} to find successor of {bag['node_id']}")
-        return await Client.getInstance().send({**bag, **{'op': op.FIND_SUCCESSOR}}, self.ip, self.port)
+        result = None
+        try:
+            log.debug(
+                f"Requesting Node {self.nid} to find successor of {bag['node_id']}")
+            result = await Client.getInstance().send({**bag, **{'op': op.FIND_SUCCESSOR}}, self.ip, self.port)
+        except Exception as e:
+            log.debug(e)
+        return result
 
     async def find_predecessor(self, node_id):  # TODO implement correctly
         log.debug(
@@ -92,12 +97,18 @@ class RemoteNode(BaseNode):
         log.warn("Do not Initialize over remote node, make call to self!")
 
     async def update_finger_table(self, bag):
-        # TODO: implement
-        log.debug(f"Updating finger table of Node {self.nid}")
-        return await Client.getInstance().send({**bag, **{'op': op.UPDATE_FINGER_TABLE}}, self.ip, self.port)
+        try:
+            log.debug(f"Updating finger table of Node {self.nid}")
+            return await Client.getInstance().send({**bag, **{'op': op.UPDATE_FINGER_TABLE}}, self.ip, self.port)
+        except Exception as e:
+            log.debug(e)
+        return None
 
     async def notify(self, bag):
-        # TODO: implement
-        log.debug(
-            f"Notifying {self.nid} that {bag['nid']} can be its predecessor")
-        return await Client.getInstance().send({**bag, **{'op': op.NOTIFY}}, self.ip, self.port)
+        try:
+            log.debug(
+                f"Notifying {self.nid} that {bag['nid']} can be its predecessor")
+            return await Client.getInstance().send({**bag, **{'op': op.NOTIFY}}, self.ip, self.port)
+        except Exception as e:
+            log.debug(e)
+        return None
