@@ -30,6 +30,7 @@ class BaseNode(ABC):
         self.routes = {self.nid: self.ip}
         self.successor = None
         self.predecessor = None
+        self.alive = True
     # @abstractmethod
     # def find_successor(self, id):
     #     pass
@@ -99,3 +100,6 @@ class BaseNode(ABC):
                               'ip': self.predecessor.ip} if self.predecessor else None
         # print(f'bagged {self.nid}')
         return bag
+
+    async def is_alive(self):
+        return self.alive

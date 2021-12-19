@@ -26,7 +26,7 @@ stop_if_needed() {
 }
 
 start_bootstrap_node() {
-    CMD="cd a2 && python main.py --ip $BOOTSTRAP_NODE"
+    CMD="cd a2 && python main.py --ip $BOOTSTRAP_NODE >> chord_test.log 2>&1"
     echo "$CMD"
     ssh -f "$BOOTSTRAP_NODE" $CMD
     sleep 2
@@ -35,7 +35,7 @@ start_bootstrap_node() {
 start_chord_nodes() {
     for node in $CHORD_NODES
     do
-        CMD="cd a2 && python main.py --ip $node --bootstrap $BOOTSTRAP_NODE"
+        CMD="cd a2 && python main.py --ip $node --bootstrap $BOOTSTRAP_NODE >> chord_test.log 2>&1"
         echo "$CMD"
         ssh -f "$node" $CMD
     done

@@ -77,17 +77,19 @@ class Node(BaseNode):
             op.FIND_SUCCESSOR: self.find_successor,
             op.UPDATE_FINGER_TABLE: self.update_finger_table,
             op.NOTIFY: self.notify,
-            # op.IS_ALIVE: self.is_alive
+            op.IS_ALIVE: self.is_alive
         }
         self.predecessor = None
         self.successor = None
         self.loop = None
         self.is_first_node = True
         self._server = None
+        self.dead_fingers=[]
 
     async def run(self, loop: asyncio.BaseEventLoop):
         EchoServerClientProtocol._node = self
         self._server = await loop.create_server(EchoServerClientProtocol, self.ip, settings.CHORD_PORT)
+        self.alive = True
         self.update_task = loop.create_task(self.update_periodically())
         loop.run_until_complete(self.update_task)
 
@@ -97,7 +99,7 @@ class Node(BaseNode):
                 log.info('Started Updating Periodically!')
                 if not self.joined:
                     if self.bootstrap_server:
-                        log.info('Joining Chord Ring!')
+                        log.info(f'Node {self.nid} Joining Chord Ring!')
                         await self.join()
                         self.joined = True
                         await asyncio.sleep(1)
@@ -110,6 +112,7 @@ class Node(BaseNode):
                 log.debug('Stabilizing')
                 await self.stabilize()
                 await self.fix_fingers()
+                # await self.check_fingers()
                 await asyncio.sleep(1)
                 # log.debug(f'Logging Node {self.nid}: ')
                 # log.debug(self.to_bag())
@@ -118,6 +121,22 @@ class Node(BaseNode):
             except Exception as e:
                 log.debug(e)
 
+    async def check_fingers(self): # Find dead fingers and make them null
+        nodes = set([f.node for f in self.fingers])
+        self.dead_fingers=[]
+        for node in nodes:
+            if node and not node.is_alive():
+                self.dead_fingers.append(node.nid)
+        for f in self.fingers:
+            if f.node and f.node.nid in self.dead_fingers:
+                f.node = None
+        if self.successor and self.successor.nid in self.dead_fingers:
+            bootstrap_node = RemoteNode(self.bootstrap_server)
+            successor_bag = await bootstrap_node.find_successor(
+                {'node_id': self.nid})
+            self.successor = RemoteNode.from_bag(successor_bag)
+
+
     async def fix_fingers(self):
         # This will eventually fix fingers, and so predecessors and successors
         i = random.randint(1, settings.NETWORK_SIZE-1)
@@ -125,7 +144,7 @@ class Node(BaseNode):
             successor_bag = await self.successor.find_successor({'node_id': self.fingers[i].start})
         elif self.bootstrap_server and self.bootstrap_server != self.ip:
             bootstrap_node = RemoteNode(self.bootstrap_server)
-            successor_bag = bootstrap_node.find_successor(
+            successor_bag = await bootstrap_node.find_successor(
                 {'node_id': self.fingers[i].start})
         else:
             return

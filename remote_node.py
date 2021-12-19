@@ -10,8 +10,9 @@ import operations as op
 import settings
 import utils
 from base_node import BaseNode, Finger
-from client import Client
+from client import Client, NodeConnectionError
 from utils import arc_contains
+import socket
 
 
 class HostnameFilter(logging.Filter):
@@ -67,6 +68,8 @@ class RemoteNode(BaseNode):
             log.debug(
                 f"Requesting Node {self.nid} to find successor of {bag['node_id']}")
             result = await Client.getInstance().send({**bag, **{'op': op.FIND_SUCCESSOR}}, self.ip, self.port)
+        except NodeConnectionError:
+            log.warn(f"Node {self.nid} wiht ip {self.ip} is UNREACHABLE!!!")
         except Exception as e:
             log.debug(e)
         return result
@@ -100,6 +103,8 @@ class RemoteNode(BaseNode):
         try:
             log.debug(f"Updating finger table of Node {self.nid}")
             return await Client.getInstance().send({**bag, **{'op': op.UPDATE_FINGER_TABLE}}, self.ip, self.port)
+        except NodeConnectionError:
+            log.warn(f"Node {self.nid} with ip {self.ip} is UNREACHABLE!!!")
         except Exception as e:
             log.debug(e)
         return None
@@ -109,6 +114,19 @@ class RemoteNode(BaseNode):
             log.debug(
                 f"Notifying {self.nid} that {bag['nid']} can be its predecessor")
             return await Client.getInstance().send({**bag, **{'op': op.NOTIFY}}, self.ip, self.port)
+        except NodeConnectionError:
+            log.warn(f"Node {self.nid} wiht ip {self.ip} is UNREACHABLE!!!")
         except Exception as e:
             log.debug(e)
         return None
+
+    async def is_alive(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect((self.ip, self.port))
+            s.shutdown(2)
+            self.alive = True
+            return True
+        except:
+            self.alive = False
+            return False
