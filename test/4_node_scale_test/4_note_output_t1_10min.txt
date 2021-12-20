@@ -1,0 +1,4 @@
+cd a2 && python main.py --ip node302
+cd a2 && python main.py --ip node303 --bootstrap node302
+cd a2 && python main.py --ip node304 --bootstrap node302
+cd a2 && python main.py --ip node305 --bootstrap node302
