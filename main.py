@@ -5,6 +5,7 @@ import logging
 import nest_asyncio
 
 from node import EchoServerClientProtocol, Node
+import time
 
 nest_asyncio.apply()
 
