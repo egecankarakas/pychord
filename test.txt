@@ -1,0 +1,11 @@
+Starting to Remove Nodes  =
+cd a2 && python main.py --ip node311
+cd a2 && python main.py --ip node312 --bootstrap node311
+
+cd a2 && python main.py --ip node313 --bootstrap node311
+cd a2 && python main.py --ip node314 --bootstrap node311
+cd a2 && python main.py --ip node336 --bootstrap node311
+cd a2 && scripts/chord.sh STOP_LOCAL_NODE
+cd a2 && scripts/chord.sh STOP_LOCAL_NODE
+cd a2 && scripts/chord.sh STOP_LOCAL_NODE
+cd a2 && scripts/chord.sh STOP_LOCAL_NODE
