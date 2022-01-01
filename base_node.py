@@ -24,7 +24,7 @@ class BaseNode(ABC):
         self.nid = int.from_bytes(
             self.hash.digest(), "big"
         ) % (1 << settings.NETWORK_SIZE)  # SHA-1 result is casted to nid (node id)
-        self.fingers = [Finger(start=self.nid+(1 << k), end=self.nid+(1 << k+1))
+        self.fingers = [Finger(start=(self.nid+(1 << k))%settings.MAX_NODES, end=(self.nid+(1 << k+1))%settings.MAX_NODES)
                         for k in range(settings.NETWORK_SIZE)]
         self.fingers[0].node = self
         self.routes = {self.nid: self.ip}
